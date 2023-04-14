@@ -19,9 +19,9 @@ import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.text.Text
 import java.util.UUID
 
-class SpeedEffect : ShoulderEffect {
-    class SpeedShoulderStatusEffect(val pokemonIds: MutableList<UUID>) :
-        StatusEffectInstance(StatusEffects.SPEED, 2400, 1, true, false, false) {
+class ResistanceEffect : ShoulderEffect {
+    class ResistanceShoulderStatusEffect(val pokemonIds: MutableList<UUID>) :
+        StatusEffectInstance(StatusEffects.RESISTANCE, 2400, 0, true, false, false) {
 
         var cooldown = 0
 
@@ -38,17 +38,12 @@ class SpeedEffect : ShoulderEffect {
 
         override fun update(entity: LivingEntity, overwriteCallback: Runnable?): Boolean {
             entity as ServerPlayerEntity
-            // Remove effect if the pokemon that gave the status is not on the shoulder anymore
-            if (!pokemonIds.any { id ->
-                    id in listOf(entity.shoulderEntityLeft, entity.shoulderEntityRight)
-                        .filterNotNull()
-                        .mapNotNull { it.getCompound("Pokemon").getUuid(POKEMON_UUID) }
-                }) {
-                entity.removeStatusEffect(StatusEffects.SPEED)
-                return false
-            }
 
-            duration = 2400
+            duration = if (isShoulderedPokemon(entity.shoulderEntityLeft) || isShoulderedPokemon(entity.shoulderEntityRight)) {
+                2400
+            } else {
+                0
+            }
 
             // Decrease cooldown timer if it's greater than 0
             if (cooldown > 0) {
@@ -57,7 +52,7 @@ class SpeedEffect : ShoulderEffect {
 
             // Warn player when there's 10 seconds left
             if (duration == 10 * 20) { // 10 seconds remaining
-                entity.sendMessage(Text.literal("Your speed boost is about to wear off."))
+                entity.sendMessage(Text.literal("Your resistance is about to wear off."))
             }
 
             return super.update(entity, overwriteCallback)
@@ -65,17 +60,17 @@ class SpeedEffect : ShoulderEffect {
     }
 
     override fun applyEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
-        val effect = player.statusEffects.filterIsInstance<SpeedShoulderStatusEffect>().firstOrNull()
+        val effect = player.statusEffects.filterIsInstance<ResistanceShoulderStatusEffect>().firstOrNull()
         if (effect != null && effect.cooldown == 0) {
             effect.pokemonIds.add(pokemon.uuid)
             effect.cooldown = 20 * 60 // 1 minute cooldown
         } else if (effect == null) {
-            player.addStatusEffect(SpeedShoulderStatusEffect(mutableListOf(pokemon.uuid)))
+            player.addStatusEffect(ResistanceShoulderStatusEffect(mutableListOf(pokemon.uuid)))
         }
     }
 
     override fun removeEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
-        val effect = player.statusEffects.filterIsInstance<SpeedShoulderStatusEffect>().firstOrNull()
+        val effect = player.statusEffects.filterIsInstance<ResistanceShoulderStatusEffect>().firstOrNull()
         effect?.pokemonIds?.remove(pokemon.uuid)
     }
 }
