@@ -18,7 +18,7 @@ import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.text.Text
 import java.util.UUID
 
-class InvisibleEffect : ShoulderEffect {
+class HasteEffect : ShoulderEffect {
     class HasteShoulderStatusEffect(internal val pokemonIds: MutableList<UUID>) : StatusEffectInstance(StatusEffects.HASTE, 2, 0, true, false, false) {
 
         companion object {
