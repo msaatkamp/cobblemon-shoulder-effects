@@ -95,8 +95,6 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
 import com.mojang.serialization.JsonOps
-import java.util.Optional
-import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import kotlin.math.absoluteValue
 import kotlin.math.max
@@ -104,6 +102,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.random.Random
 import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NbtCompound
@@ -118,6 +117,10 @@ import net.minecraft.util.InvalidIdentifierException
 import net.minecraft.util.math.MathHelper.ceil
 import net.minecraft.util.math.MathHelper.clamp
 import net.minecraft.util.math.Vec3d
+import java.util.UUID
+import java.util.Optional
+
+import net.minecraft.entity.effect.StatusEffectInstance
 
 open class Pokemon : ShowdownIdentifiable {
     var uuid = UUID.randomUUID()
@@ -401,6 +404,17 @@ open class Pokemon : ShowdownIdentifiable {
             mutation(entity)
             level.spawnEntity(entity)
             state = SentOutState(entity)
+
+            // The code below will be used to test on use pokemons effects
+            val pokemonNames = arrayOf("absol", "zubat", "weedle")
+            val owner: ServerPlayerEntity? = this.getOwnerPlayer() as? ServerPlayerEntity
+
+            if (owner != null && entity.displayName.string.lowercase() in pokemonNames) {
+                // do something with the owner entity
+
+                val badOmenEffect = StatusEffectInstance(StatusEffects.BAD_OMEN, 6000, 0)
+                owner.addStatusEffect(badOmenEffect)
+            }
             return entity
         }
         return null;
