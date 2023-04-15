@@ -65,7 +65,7 @@ class SlowFallEffect : ShoulderEffect {
             duration = if (isShoulderedPokemon(entity.shoulderEntityLeft) || isShoulderedPokemon(entity.shoulderEntityRight)) {
                 10
             } else {
-                0
+                duration - 10
             }
             return super.update(entity, overwriteCallback)
         }

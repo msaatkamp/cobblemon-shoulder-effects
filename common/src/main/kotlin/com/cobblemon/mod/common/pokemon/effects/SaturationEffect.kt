@@ -5,7 +5,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
-
 package com.cobblemon.mod.common.pokemon.effects
 
 import com.cobblemon.mod.common.api.pokemon.effect.ShoulderEffect
@@ -20,11 +19,14 @@ import net.minecraft.text.Text
 import java.util.UUID
 
 class SaturationEffect : ShoulderEffect {
-    class SaturationShoulderStatusEffect(val pokemonIds: MutableList<UUID>) :
-        StatusEffectInstance(StatusEffects.SATURATION, 400, 0, true, false, false) {
+    class SaturationShoulderStatusEffect(internal val pokemonIds: MutableList<UUID>) : StatusEffectInstance(StatusEffects.SATURATION, 2, 0, true, false, false) {
 
-        var cooldown = 0
+        companion object {
+            const val EFFECT_DURATION_SECONDS = 300 // 15 seconds
+            const val COOLDOWN_DURATION_SECONDS = 6000 // 5min
+        }
 
+        private var cooldown = 0
         fun isShoulderedPokemon(shoulderEntity: NbtCompound): Boolean {
             val pokemonNBT = shoulderEntity.getCompound("Pokemon")
             return pokemonNBT.containsUuid(POKEMON_UUID) && pokemonNBT.getUuid(POKEMON_UUID) in pokemonIds
@@ -38,37 +40,35 @@ class SaturationEffect : ShoulderEffect {
 
         override fun update(entity: LivingEntity, overwriteCallback: Runnable?): Boolean {
             entity as ServerPlayerEntity
+            cooldown = maxOf(cooldown - 1, 0)
+
             val world = entity.world
 
             // Check if the player has lost three or more hunger points
             val hungerLost = entity.hungerManager.prevFoodLevel - entity.hungerManager.foodLevel
-            if (hungerLost >= 3) {
-                // Apply saturation effect
-                duration = 400
-            } else {
-                duration = 0
+            val hasShoulderedPokemon = isShoulderedPokemon(entity.shoulderEntityLeft) || isShoulderedPokemon(entity.shoulderEntityRight)
+            if (!hasShoulderedPokemon) {
+                duration = maxOf(duration - EFFECT_DURATION_SECONDS, 0)
             }
-
-            // Decrease cooldown timer if it's greater than 0
-            if (cooldown > 0) {
-                cooldown--
+            if (duration == 0 && cooldown == 0 && hungerLost >= 3) {
+                cooldown = COOLDOWN_DURATION_SECONDS
+                duration = EFFECT_DURATION_SECONDS
             }
-
-            // Warn player when there's 10 seconds left
-            if (duration == 10 * 20) { // 10 seconds remaining
-                entity.sendMessage(Text.literal("Your saturation effect is about to wear off."))
+            if (duration == 40) { // 2 seconds remaining
+                entity.sendMessage(Text.literal("Your starvation protection is about to wear off."))
             }
-
+            if (cooldown == 20) { // 1 seconds to be ready
+                entity.sendMessage(Text.literal("Your starvation protection is ready."))
+            }
             return super.update(entity, overwriteCallback)
         }
     }
 
     override fun applyEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
         val effect = player.statusEffects.filterIsInstance<SaturationShoulderStatusEffect>().firstOrNull()
-        if (effect != null && effect.cooldown == 0) {
+        if (effect != null) {
             effect.pokemonIds.add(pokemon.uuid)
-            effect.cooldown = 20 * 60 // 1 minute cooldown
-        } else if (effect == null) {
+        } else {
             player.addStatusEffect(SaturationShoulderStatusEffect(mutableListOf(pokemon.uuid)))
         }
     }

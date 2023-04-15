@@ -5,7 +5,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
-
 package com.cobblemon.mod.common.pokemon.effects
 
 import com.cobblemon.mod.common.api.pokemon.effect.ShoulderEffect
@@ -20,11 +19,14 @@ import net.minecraft.text.Text
 import java.util.UUID
 
 class RegenerationEffect : ShoulderEffect {
-    class RegenerationShoulderStatusEffect(val pokemonIds: MutableList<UUID>) :
-        StatusEffectInstance(StatusEffects.REGENERATION, 0, 0, true, false, false) {
+    class RegenerationShoulderStatusEffect(internal val pokemonIds: MutableList<UUID>) : StatusEffectInstance(StatusEffects.REGENERATION, 2, 0, true, false, false) {
 
-        var cooldown = 0
+        companion object {
+            const val EFFECT_DURATION_SECONDS = 300 // 15 seconds
+            const val COOLDOWN_DURATION_SECONDS = 6000 // 5min
+        }
 
+        private var cooldown = 0
         fun isShoulderedPokemon(shoulderEntity: NbtCompound): Boolean {
             val pokemonNBT = shoulderEntity.getCompound("Pokemon")
             return pokemonNBT.containsUuid(POKEMON_UUID) && pokemonNBT.getUuid(POKEMON_UUID) in pokemonIds
@@ -38,26 +40,26 @@ class RegenerationEffect : ShoulderEffect {
 
         override fun update(entity: LivingEntity, overwriteCallback: Runnable?): Boolean {
             entity as ServerPlayerEntity
+            cooldown = maxOf(cooldown - 1, 0)
 
-            // Check if the player has lost three or more hearts
-            val heartsLost = (entity.maxHealth - entity.health) / 2.0
-            if (heartsLost >= 3.0 && duration == 0 && cooldown == 0) {
-                // Apply regeneration effect and set cooldown
-                duration = 400
-                cooldown = 20 * 60 * 10 // 10 minute cooldown
-                entity.sendMessage(Text.literal("Your regeneration effect is active."))
+            val world = entity.world
+
+            // Check if the player has lost three or more hunger points
+            val healthLost = entity.maxHealth - entity.health
+            val hasShoulderedPokemon = isShoulderedPokemon(entity.shoulderEntityLeft) || isShoulderedPokemon(entity.shoulderEntityRight)
+            if (!hasShoulderedPokemon) {
+                duration = maxOf(duration - EFFECT_DURATION_SECONDS, 0)
             }
-
-            // Decrease cooldown timer if it's greater than 0
-            if (cooldown > 0) {
-                cooldown--
+            if (duration == 0 && cooldown == 0 && healthLost >= 3) {
+                cooldown = COOLDOWN_DURATION_SECONDS
+                duration = EFFECT_DURATION_SECONDS
             }
-
-            // Warn player when there's 10 seconds left
-            if (duration == 10 * 20) { // 10 seconds remaining
-                entity.sendMessage(Text.literal("Your regeneration effect is about to wear off."))
+            if (duration == 40) { // 2 seconds remaining
+                entity.sendMessage(Text.literal("Your regeneration protection is about to wear off."))
             }
-
+            if (cooldown == 20) { // 1 seconds wait
+                entity.sendMessage(Text.literal("Your regeneration protection protection is ready."))
+            }
             return super.update(entity, overwriteCallback)
         }
     }

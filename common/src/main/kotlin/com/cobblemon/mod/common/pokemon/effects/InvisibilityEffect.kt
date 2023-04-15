@@ -5,7 +5,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
-
 package com.cobblemon.mod.common.pokemon.effects
 
 import com.cobblemon.mod.common.api.pokemon.effect.ShoulderEffect
@@ -20,11 +19,14 @@ import net.minecraft.text.Text
 import java.util.UUID
 
 class InvisibilityEffect : ShoulderEffect {
-    class InvisibilityShoulderStatusEffect(val pokemonIds: MutableList<UUID>) :
-        StatusEffectInstance(StatusEffects.INVISIBILITY, 2400, 0, true, false, false) {
+    class InvisibilityShoulderStatusEffect(internal val pokemonIds: MutableList<UUID>) : StatusEffectInstance(StatusEffects.INVISIBILITY, 2, 0, true, false, false) {
 
-        var cooldown = 0
+        companion object {
+            const val EFFECT_DURATION_SECONDS = 6000 // 5min
+            const val COOLDOWN_DURATION_SECONDS = 2400 // 2min
+        }
 
+        private var cooldown = 0
         fun isShoulderedPokemon(shoulderEntity: NbtCompound): Boolean {
             val pokemonNBT = shoulderEntity.getCompound("Pokemon")
             return pokemonNBT.containsUuid(POKEMON_UUID) && pokemonNBT.getUuid(POKEMON_UUID) in pokemonIds
@@ -38,33 +40,30 @@ class InvisibilityEffect : ShoulderEffect {
 
         override fun update(entity: LivingEntity, overwriteCallback: Runnable?): Boolean {
             entity as ServerPlayerEntity
-
-            duration = if (isShoulderedPokemon(entity.shoulderEntityLeft) || isShoulderedPokemon(entity.shoulderEntityRight)) {
-                2400
-            } else {
-                0
+            cooldown = maxOf(cooldown - 1, 0)
+            val hasShoulderedPokemon = isShoulderedPokemon(entity.shoulderEntityLeft) || isShoulderedPokemon(entity.shoulderEntityRight)
+            if (!hasShoulderedPokemon) {
+                duration = maxOf(duration - EFFECT_DURATION_SECONDS, 0)
             }
-
-            // Decrease cooldown timer if it's greater than 0
-            if (cooldown > 0) {
-                cooldown--
+            if (duration == 0 && cooldown == 0) {
+                cooldown = COOLDOWN_DURATION_SECONDS
+                duration = EFFECT_DURATION_SECONDS
             }
-
-            // Warn player when there's 10 seconds left
             if (duration == 10 * 20) { // 10 seconds remaining
-                entity.sendMessage(Text.literal("Your invisibility is about to wear off."))
+                entity.sendMessage(Text.literal("Your invisibility effect is about to wear off."))
             }
-
+            if (cooldown == 20) { // 1 seconds to be ready
+                entity.sendMessage(Text.literal("Your invisibility effect is ready."))
+            }
             return super.update(entity, overwriteCallback)
         }
     }
 
     override fun applyEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
         val effect = player.statusEffects.filterIsInstance<InvisibilityShoulderStatusEffect>().firstOrNull()
-        if (effect != null && effect.cooldown == 0) {
+        if (effect != null) {
             effect.pokemonIds.add(pokemon.uuid)
-            effect.cooldown = 20 * 60 // 1 minute cooldown
-        } else if (effect == null) {
+        } else {
             player.addStatusEffect(InvisibilityShoulderStatusEffect(mutableListOf(pokemon.uuid)))
         }
     }

@@ -5,7 +5,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
-
 package com.cobblemon.mod.common.pokemon.effects
 
 import com.cobblemon.mod.common.api.pokemon.effect.ShoulderEffect
@@ -17,14 +16,18 @@ import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.nbt.NbtCompound
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.text.Text
-import java.util.UUID
+import java.util.*
+
 
 class NightVisionEffect : ShoulderEffect {
-    class NightVisionShoulderStatusEffect(val pokemonIds: MutableList<UUID>) :
-        StatusEffectInstance(StatusEffects.NIGHT_VISION, 2400, 0, true, false, false) {
+    class NightVisionShoulderStatusEffect(internal val pokemonIds: MutableList<UUID>) : StatusEffectInstance(StatusEffects.NIGHT_VISION, 2, 0, true, false, false) {
 
-        var cooldown = 0
+        companion object {
+            const val EFFECT_DURATION_SECONDS = 6000 // 5min
+            const val COOLDOWN_DURATION_SECONDS = 2400 // 2min
+        }
 
+        private var cooldown = 0
         fun isShoulderedPokemon(shoulderEntity: NbtCompound): Boolean {
             val pokemonNBT = shoulderEntity.getCompound("Pokemon")
             return pokemonNBT.containsUuid(POKEMON_UUID) && pokemonNBT.getUuid(POKEMON_UUID) in pokemonIds
@@ -38,37 +41,37 @@ class NightVisionEffect : ShoulderEffect {
 
         override fun update(entity: LivingEntity, overwriteCallback: Runnable?): Boolean {
             entity as ServerPlayerEntity
-            val world = entity.world
-            duration = if (isShoulderedPokemon(entity.shoulderEntityLeft) || isShoulderedPokemon(entity.shoulderEntityRight)) {
-                if (world.isNight && !entity.isSubmergedInWater) {
-                    2400
-                } else {
-                    0
-                }
-            } else {
-                0
+            cooldown = maxOf(cooldown - 1, 0)
+            val hasShoulderedPokemon = isShoulderedPokemon(entity.shoulderEntityLeft) || isShoulderedPokemon(entity.shoulderEntityRight)
+            if (!hasShoulderedPokemon ) {
+                duration = maxOf(duration - EFFECT_DURATION_SECONDS, 0)
+            }
+            if (duration == 0 && cooldown == 0) {
+                cooldown = COOLDOWN_DURATION_SECONDS
+                duration = EFFECT_DURATION_SECONDS
             }
 
-            // Decrease cooldown timer if it's greater than 0
-            if (cooldown > 0) {
-                cooldown--
+            val dayTime: Long = entity.world.timeOfDay % 24000
+            val ticksUntilEndOfNight = 12000 - dayTime
+            val secondsUntilEndOfNight = (ticksUntilEndOfNight / 20).toInt()
+            if (duration == 10 * 20 ) { // 10 seconds remaining
+                entity.sendMessage(Text.literal("Your NightVision buff is about to wear off."))
             }
-
-            // Warn player when there's 10 seconds left
-            if (duration == 10 * 20) { // 10 seconds remaining
-                entity.sendMessage(Text.literal("Your night vision is about to wear off."))
+            if(secondsUntilEndOfNight == 10) {
+                entity.sendMessage(Text.literal("The day is rising, your night vision will end."))
             }
-
+            if (cooldown == 20) { // 1 seconds to be ready
+                entity.sendMessage(Text.literal("Your NightVision buff is ready."))
+            }
             return super.update(entity, overwriteCallback)
         }
     }
 
     override fun applyEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
         val effect = player.statusEffects.filterIsInstance<NightVisionShoulderStatusEffect>().firstOrNull()
-        if (effect != null && effect.cooldown == 0) {
+        if (effect != null) {
             effect.pokemonIds.add(pokemon.uuid)
-            effect.cooldown = 20 * 60 // 1 minute cooldown
-        } else if (effect == null) {
+        } else {
             player.addStatusEffect(NightVisionShoulderStatusEffect(mutableListOf(pokemon.uuid)))
         }
     }

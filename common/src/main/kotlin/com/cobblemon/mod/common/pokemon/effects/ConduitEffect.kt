@@ -5,7 +5,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
-
 package com.cobblemon.mod.common.pokemon.effects
 
 import com.cobblemon.mod.common.api.pokemon.effect.ShoulderEffect
@@ -16,13 +15,18 @@ import net.minecraft.entity.effect.StatusEffectInstance
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.nbt.NbtCompound
 import net.minecraft.server.network.ServerPlayerEntity
-import net.minecraft.world.World
+import net.minecraft.text.Text
 import java.util.UUID
 
 class ConduitEffect : ShoulderEffect {
-    class ConduitShoulderStatusEffect(val pokemonIds: MutableList<UUID>) :
-            StatusEffectInstance(StatusEffects.CONDUIT_POWER, 6000, 0, true, false, false) {
+    class ConduitShoulderStatusEffect(internal val pokemonIds: MutableList<UUID>) : StatusEffectInstance(StatusEffects.CONDUIT_POWER, 2, 0, true, false, false) {
 
+        companion object {
+            const val EFFECT_DURATION_SECONDS = 6000 // 5min
+            const val COOLDOWN_DURATION_SECONDS = 2400 // 2min
+        }
+
+        private var cooldown = 0
         fun isShoulderedPokemon(shoulderEntity: NbtCompound): Boolean {
             val pokemonNBT = shoulderEntity.getCompound("Pokemon")
             return pokemonNBT.containsUuid(POKEMON_UUID) && pokemonNBT.getUuid(POKEMON_UUID) in pokemonIds
@@ -36,15 +40,20 @@ class ConduitEffect : ShoulderEffect {
 
         override fun update(entity: LivingEntity, overwriteCallback: Runnable?): Boolean {
             entity as ServerPlayerEntity
-            val world: World = entity.world
-            duration = if (isShoulderedPokemon(entity.shoulderEntityLeft) || isShoulderedPokemon(entity.shoulderEntityRight)) {
-                if (world.isWater(entity.blockPos)) {
-                    200
-                } else {
-                    0
-                }
-            } else {
-                0
+            cooldown = maxOf(cooldown - 1, 0)
+            val hasShoulderedPokemon = isShoulderedPokemon(entity.shoulderEntityLeft) || isShoulderedPokemon(entity.shoulderEntityRight)
+            if (!hasShoulderedPokemon) {
+                duration = maxOf(duration - EFFECT_DURATION_SECONDS, 0)
+            }
+            if (duration == 0 && cooldown == 0) {
+                cooldown = COOLDOWN_DURATION_SECONDS
+                duration = EFFECT_DURATION_SECONDS
+            }
+            if (duration == 10 * 20) { // 10 seconds remaining
+                entity.sendMessage(Text.literal("Your conduit buff is about to wear off."))
+            }
+            if (cooldown == 20) { // 1 seconds to be ready
+                entity.sendMessage(Text.literal("Your conduit buff is ready."))
             }
             return super.update(entity, overwriteCallback)
         }
