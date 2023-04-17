@@ -42,14 +42,13 @@ class NightVisionEffect : ShoulderEffect {
 
         override fun update(entity: LivingEntity, overwriteCallback: Runnable?): Boolean {
             entity as ServerPlayerEntity
-            cooldown = maxOf(cooldown - 1, 0)
+            
             val hasShoulderedPokemon = isShoulderedPokemon(entity.shoulderEntityLeft) || isShoulderedPokemon(entity.shoulderEntityRight)
-            if (!hasShoulderedPokemon ) {
-                duration = maxOf(duration - EFFECT_DURATION_SECONDS, 0)
-            }
-            if (duration == 0 && cooldown == 0) {
-                cooldown = COOLDOWN_DURATION_SECONDS
+            if (hasShoulderedPokemon && cooldown <= 0) {
                 duration = EFFECT_DURATION_SECONDS
+            }
+            if(duration == 20 ) {
+                cooldown = COOLDOWN_DURATION_SECONDS
             }
 
             val dayTime: Long = entity.world.timeOfDay % 24000

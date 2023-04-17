@@ -41,7 +41,7 @@ class SaturationEffect : ShoulderEffect {
 
         override fun update(entity: LivingEntity, overwriteCallback: Runnable?): Boolean {
             entity as ServerPlayerEntity
-            cooldown = maxOf(cooldown - 1, 0)
+            
 
             val world = entity.world
 
@@ -49,7 +49,7 @@ class SaturationEffect : ShoulderEffect {
             val hungerLost = entity.hungerManager.prevFoodLevel - entity.hungerManager.foodLevel
             val hasShoulderedPokemon = isShoulderedPokemon(entity.shoulderEntityLeft) || isShoulderedPokemon(entity.shoulderEntityRight)
             if (!hasShoulderedPokemon) {
-                duration = maxOf(duration - EFFECT_DURATION_SECONDS, 0)
+                duration = maxOf(duration - EFFECT_DURATION_SECONDS, -1)
             }
             if (duration == 0 && cooldown == 0 && hungerLost >= 3) {
                 cooldown = COOLDOWN_DURATION_SECONDS
