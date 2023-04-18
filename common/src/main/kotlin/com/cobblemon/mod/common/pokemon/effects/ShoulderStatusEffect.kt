@@ -25,7 +25,6 @@ abstract class ShoulderStatusEffect(
     private val buffName: String
 ) : StatusEffectInstance(effect, effectDurationSeconds, 0, true, false, false) {
 
-    private var msgCooldown = 0
     private var effectApplied = false
 
     override fun writeNbt(nbt: NbtCompound): NbtCompound {
@@ -60,8 +59,6 @@ abstract class ShoulderStatusEffect(
                 entity.sendMessage(Text.literal("Your pokemon $buffName was removed."))
             }
         }
-
-        msgCooldown--
 
         return super.update(entity, overwriteCallback)
     }
