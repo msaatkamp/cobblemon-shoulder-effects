@@ -10,15 +10,51 @@ package com.cobblemon.mod.common.pokemon.effects
 
 import com.cobblemon.mod.common.api.pokemon.effect.ShoulderEffect
 import com.cobblemon.mod.common.pokemon.Pokemon
+import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.server.network.ServerPlayerEntity
-class LightSourceEffect: ShoulderEffect {
-    private var test = "AAA"
+import net.minecraft.text.Text
+import java.time.Instant
+import java.util.UUID
+
+class LightSourceEffect : ShoulderEffect {
+
+    private val lastTimeUsed: MutableMap<UUID, Long> = mutableMapOf()
+    private val buffName: String = "Glowing"
+    private val buffDurationSeconds: Int = 300
 
     override fun applyEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
-        println("Applying effect... $test")
+        val effect = player.statusEffects.filterIsInstance<LightSourceShoulderStatusEffect>().firstOrNull()
+        if (effect != null) {
+            effect.pokemonIds.add(pokemon.uuid)
+        }
+        if (effect == null){
+            val lastTimeUse = lastTimeUsed[pokemon.uuid]
+            val currentTime = Instant.now().epochSecond
+            val twoMinutesInSeconds = 2 * 60 // 2 minutes in seconds
+            val timeDiff = if (lastTimeUse != null) currentTime - lastTimeUse else Long.MAX_VALUE
+
+            if (timeDiff >= twoMinutesInSeconds) {
+                player.addStatusEffect(
+                    LightSourceShoulderStatusEffect(
+                        mutableListOf(pokemon.uuid),
+                        buffName,
+                        buffDurationSeconds
+                    )
+                )
+                lastTimeUsed[pokemon.uuid] = currentTime
+                player.sendMessage(Text.literal("$buffName effect applied from ${pokemon.displayName} for $buffDurationSeconds seconds."))
+            } else {
+                player.sendMessage(Text.literal("$buffName effect is still on cooldown for ${twoMinutesInSeconds - timeDiff} seconds."))
+            }
+
+        }
     }
 
     override fun removeEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
-        println("Removing effect...")
+        val effect = player.statusEffects.filterIsInstance<LightSourceShoulderStatusEffect>().firstOrNull()
+        effect?.pokemonIds?.remove(pokemon.uuid)
     }
+
+    class LightSourceShoulderStatusEffect(pokemonIds: MutableList<UUID>, buffName: String, duration: Int) : ShoulderStatusEffect(pokemonIds, StatusEffects.GLOWING, duration * 20, buffName ) {}
+
 }

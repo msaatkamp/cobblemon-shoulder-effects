@@ -16,31 +16,25 @@ import net.minecraft.text.Text
 import java.time.Instant
 import java.util.UUID
 
-class HasteEffect : ShoulderEffect {
+class ConduitEffect : ShoulderEffect {
 
     private val lastTimeUsed: MutableMap<UUID, Long> = mutableMapOf()
-    private val buffName: String = "Haste"
+    private val buffName: String = "Conduit"
     private val buffDurationSeconds: Int = 300
 
     override fun applyEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
-        val effect = player.statusEffects.filterIsInstance<HasteShoulderStatusEffect>().firstOrNull()
+        val effect = player.statusEffects.filterIsInstance<ConduitShoulderStatusEffect>().firstOrNull()
         if (effect != null) {
             effect.pokemonIds.add(pokemon.uuid)
         }
-        if (effect == null) {
+        if (effect == null){
             val lastTimeUse = lastTimeUsed[pokemon.uuid]
             val currentTime = Instant.now().epochSecond
             val twoMinutesInSeconds = 2 * 60 // 2 minutes in seconds
             val timeDiff = if (lastTimeUse != null) currentTime - lastTimeUse else Long.MAX_VALUE
 
             if (timeDiff >= twoMinutesInSeconds) {
-                player.addStatusEffect(
-                    HasteShoulderStatusEffect(
-                        mutableListOf(pokemon.uuid),
-                        buffName,
-                        buffDurationSeconds
-                    )
-                )
+                player.addStatusEffect(ConduitShoulderStatusEffect(mutableListOf(pokemon.uuid), buffName, buffDurationSeconds))
                 lastTimeUsed[pokemon.uuid] = currentTime
                 player.sendMessage(Text.literal("$buffName effect applied from ${pokemon.displayName} for $buffDurationSeconds seconds."))
             } else {
@@ -51,10 +45,10 @@ class HasteEffect : ShoulderEffect {
     }
 
     override fun removeEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
-        val effect = player.statusEffects.filterIsInstance<HasteShoulderStatusEffect>().firstOrNull()
+        val effect = player.statusEffects.filterIsInstance<ConduitShoulderStatusEffect>().firstOrNull()
         effect?.pokemonIds?.remove(pokemon.uuid)
     }
 
-    class HasteShoulderStatusEffect(pokemonIds: MutableList<UUID>, buffName: String, duration: Int) : ShoulderStatusEffect(pokemonIds, StatusEffects.HASTE, duration * 20, buffName ) {}
+    class ConduitShoulderStatusEffect(pokemonIds: MutableList<UUID>, buffName: String, duration: Int) : ShoulderStatusEffect(pokemonIds, StatusEffects.CONDUIT_POWER, duration * 20, buffName ) {}
 
 }

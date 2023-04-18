@@ -31,7 +31,19 @@ object ShoulderEffectRegistry {
     val WATER_BREATHING = register("water_breathing", WaterBreathingEffect::class.java)
     val SATURATION = register("saturation", SaturationEffect::class.java)
     val SPEED = register("speed", SpeedEffect::class.java)
+    val DOLPHIN_GRACE = register("dolphin_grace", DolphinGraceEffect::class.java)
+    val CONDUIT = register("conduit", ConduitEffect::class.java)
+    val INVISIBILITY = register("invisibility", InvisibilityEffect::class.java)
+    val JUMP_BOOST = register("jump_boost", JumpBoostEffect::class.java)
+    val NIGHT_VISION = register("night_vision", NightVisionEffect::class.java)
+    val REGENERATION = register("regeneration", RegenerationEffect::class.java)
+    val RESISTANCE = register("resistance", ResistanceEffect::class.java)
+    val STRENGTH = register("strength", StrengthEffect::class.java)
+    val FIRE_RESISTANCE = register("fire_resistance", FireResistanceEffect::class.java)
+    val HEALTH_BOOST = register("health_boost", HealthBoostEffect::class.java)
     // Effects - END
+
+
 
     fun register() {
         PLAYER_JOIN.register { onPlayerJoin(it) }

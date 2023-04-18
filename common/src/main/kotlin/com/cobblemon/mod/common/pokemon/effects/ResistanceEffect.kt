@@ -16,18 +16,19 @@ import net.minecraft.text.Text
 import java.time.Instant
 import java.util.UUID
 
-class HasteEffect : ShoulderEffect {
+class ResistanceEffect : ShoulderEffect {
+
 
     private val lastTimeUsed: MutableMap<UUID, Long> = mutableMapOf()
-    private val buffName: String = "Haste"
+    private val buffName: String = "Resistance"
     private val buffDurationSeconds: Int = 300
 
     override fun applyEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
-        val effect = player.statusEffects.filterIsInstance<HasteShoulderStatusEffect>().firstOrNull()
+        val effect = player.statusEffects.filterIsInstance<ResistanceShoulderStatusEffect>().firstOrNull()
         if (effect != null) {
             effect.pokemonIds.add(pokemon.uuid)
         }
-        if (effect == null) {
+        if (effect == null){
             val lastTimeUse = lastTimeUsed[pokemon.uuid]
             val currentTime = Instant.now().epochSecond
             val twoMinutesInSeconds = 2 * 60 // 2 minutes in seconds
@@ -35,7 +36,7 @@ class HasteEffect : ShoulderEffect {
 
             if (timeDiff >= twoMinutesInSeconds) {
                 player.addStatusEffect(
-                    HasteShoulderStatusEffect(
+                   ResistanceShoulderStatusEffect(
                         mutableListOf(pokemon.uuid),
                         buffName,
                         buffDurationSeconds
@@ -51,10 +52,10 @@ class HasteEffect : ShoulderEffect {
     }
 
     override fun removeEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
-        val effect = player.statusEffects.filterIsInstance<HasteShoulderStatusEffect>().firstOrNull()
+        val effect = player.statusEffects.filterIsInstance<ResistanceShoulderStatusEffect>().firstOrNull()
         effect?.pokemonIds?.remove(pokemon.uuid)
     }
 
-    class HasteShoulderStatusEffect(pokemonIds: MutableList<UUID>, buffName: String, duration: Int) : ShoulderStatusEffect(pokemonIds, StatusEffects.HASTE, duration * 20, buffName ) {}
+    class ResistanceShoulderStatusEffect(pokemonIds: MutableList<UUID>, buffName: String, duration: Int) : ShoulderStatusEffect(pokemonIds, StatusEffects.RESISTANCE, duration * 20, buffName ) {}
 
 }
