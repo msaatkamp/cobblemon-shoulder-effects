@@ -9,7 +9,6 @@
 package com.cobblemon.mod.common.pokemon.effects
 
 import com.cobblemon.mod.common.api.pokemon.effect.ShoulderEffect
-import com.cobblemon.mod.common.api.pokemon.effect.ShoulderStatusEffect
 import com.cobblemon.mod.common.pokemon.Pokemon
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.server.network.ServerPlayerEntity

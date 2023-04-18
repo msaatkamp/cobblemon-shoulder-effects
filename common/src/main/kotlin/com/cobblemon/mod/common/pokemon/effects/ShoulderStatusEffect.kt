@@ -6,7 +6,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-package com.cobblemon.mod.common.api.pokemon.effect
+package com.cobblemon.mod.common.pokemon.effects
 
 import com.cobblemon.mod.common.util.DataKeys.POKEMON_UUID
 import net.minecraft.entity.LivingEntity
