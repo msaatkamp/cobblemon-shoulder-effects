@@ -36,7 +36,7 @@ class ConduitEffect : ShoulderEffect {
             if (timeDiff >= twoMinutesInSeconds) {
                 player.addStatusEffect(ConduitShoulderStatusEffect(mutableListOf(pokemon.uuid), buffName, buffDurationSeconds))
                 lastTimeUsed[pokemon.uuid] = currentTime
-                player.sendMessage(Text.literal("$buffName effect applied from ${pokemon.displayName} for $buffDurationSeconds seconds."))
+                player.sendMessage(Text.literal("$buffName effect applied from ${pokemon.species.name} for $buffDurationSeconds seconds."))
             } else {
                 player.sendMessage(Text.literal("$buffName effect is still on cooldown for ${twoMinutesInSeconds - timeDiff} seconds."))
             }
