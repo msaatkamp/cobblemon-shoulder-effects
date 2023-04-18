@@ -41,7 +41,6 @@ abstract class ShoulderStatusEffect(
 
         if (hasShoulderedPokemon) {
             if (!effectApplied) {
-                entity.sendMessage(Text.literal("Your pokemon is giving you a $buffName boost for ${effectDurationSeconds * 20} seconds."))
                 duration = if (duration > 0) duration + effectDurationSeconds else effectDurationSeconds
                 effectApplied = true
             }
