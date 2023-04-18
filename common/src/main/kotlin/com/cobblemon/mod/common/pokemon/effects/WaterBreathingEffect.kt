@@ -13,16 +13,41 @@ import com.cobblemon.mod.common.api.pokemon.effect.ShoulderStatusEffect
 import com.cobblemon.mod.common.pokemon.Pokemon
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.server.network.ServerPlayerEntity
+import net.minecraft.text.Text
+import java.time.Instant
 import java.util.UUID
 
 class WaterBreathingEffect : ShoulderEffect {
+
+    private val lastTimeUsed: MutableMap<UUID, Long> = mutableMapOf()
+    private val buffName: String = "Water Breathing"
+    private val buffDurationSeconds: Int = 300
 
     override fun applyEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
         val effect = player.statusEffects.filterIsInstance<WaterBreathingShoulderStatusEffect>().firstOrNull()
         if (effect != null) {
             effect.pokemonIds.add(pokemon.uuid)
-        } else {
-            player.addStatusEffect(WaterBreathingShoulderStatusEffect(mutableListOf(pokemon.uuid), false, "Aguita Quentita"))
+        }
+        if (effect == null){
+            val lastTimeUse = lastTimeUsed[pokemon.uuid]
+            val currentTime = Instant.now().epochSecond
+            val twoMinutesInSeconds = 2 * 60 // 2 minutes in seconds
+            val timeDiff = if (lastTimeUse != null) currentTime - lastTimeUse else Long.MAX_VALUE
+
+            if (timeDiff >= twoMinutesInSeconds) {
+                player.addStatusEffect(
+                    WaterBreathingShoulderStatusEffect(
+                        mutableListOf(pokemon.uuid),
+                        buffName,
+                        buffDurationSeconds
+                    )
+                )
+                lastTimeUsed[pokemon.uuid] = currentTime
+                player.sendMessage(Text.literal("$buffName effect applied from ${pokemon.displayName} for $buffDurationSeconds seconds."))
+            } else {
+                player.sendMessage(Text.literal("$buffName effect is still on cooldown for ${twoMinutesInSeconds - timeDiff} seconds."))
+            }
+
         }
     }
 
@@ -31,5 +56,6 @@ class WaterBreathingEffect : ShoulderEffect {
         effect?.pokemonIds?.remove(pokemon.uuid)
     }
 
-    class WaterBreathingShoulderStatusEffect(pokemonIds: MutableList<UUID>, isInCooldown: Boolean, buffName: String) : ShoulderStatusEffect(pokemonIds, StatusEffects.HASTE, 300, isInCooldown, buffName) {}
+    class WaterBreathingShoulderStatusEffect(pokemonIds: MutableList<UUID>, buffName: String, duration: Int) : ShoulderStatusEffect(pokemonIds, StatusEffects.WATER_BREATHING, duration * 20, buffName ) {}
+
 }

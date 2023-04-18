@@ -11,34 +11,41 @@ package com.cobblemon.mod.common.pokemon.effects
 import com.cobblemon.mod.common.api.pokemon.effect.ShoulderEffect
 import com.cobblemon.mod.common.api.pokemon.effect.ShoulderStatusEffect
 import com.cobblemon.mod.common.pokemon.Pokemon
-import com.cobblemon.mod.common.util.DataKeys
 import net.minecraft.entity.effect.StatusEffects
-import net.minecraft.nbt.NbtCompound
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.text.Text
-import java.util.*
+import java.time.Instant
+import java.util.UUID
 
 class HasteEffect : ShoulderEffect {
 
+    private val lastTimeUsed: MutableMap<UUID, Long> = mutableMapOf()
+    private val buffName: String = "Haste"
+    private val buffDurationSeconds: Int = 300
+
     override fun applyEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
         val effect = player.statusEffects.filterIsInstance<HasteShoulderStatusEffect>().firstOrNull()
-        val lastTimeUse = pokemon.saveToNBT(NbtCompound()).getLong("HASTE_EFFECT_LAST_USE")
-        val twoMinutesInMillis = 2 * 60 * 1000 // 2 minutes in milliseconds
-        val timeDiff = System.currentTimeMillis() - lastTimeUse
-
         if (effect != null) {
             effect.pokemonIds.add(pokemon.uuid)
         }
-        if (effect == null){
-            if(timeDiff >= twoMinutesInMillis) {
-                player.addStatusEffect(HasteShoulderStatusEffect(mutableListOf(pokemon.uuid), false, "HASTE"))
-                player.sendMessage(Text.literal("Set two minutes cooldown"))
+        if (effect == null) {
+            val lastTimeUse = lastTimeUsed[pokemon.uuid]
+            val currentTime = Instant.now().epochSecond
+            val twoMinutesInSeconds = 2 * 60 // 2 minutes in seconds
+            val timeDiff = if (lastTimeUse != null) currentTime - lastTimeUse else Long.MAX_VALUE
 
-                setPokemonCooldown(pokemon)
+            if (timeDiff >= twoMinutesInSeconds) {
+                player.addStatusEffect(
+                    HasteShoulderStatusEffect(
+                        mutableListOf(pokemon.uuid),
+                        buffName,
+                        buffDurationSeconds
+                    )
+                )
+                lastTimeUsed[pokemon.uuid] = currentTime
+                player.sendMessage(Text.literal("$buffName effect applied from ${pokemon.displayName} for $buffDurationSeconds seconds."))
             } else {
-                player.addStatusEffect(HasteShoulderStatusEffect(mutableListOf(pokemon.uuid), true, "HASTE"))
-                player.sendMessage(Text.literal("HASTE_EFFECT_LAST_USE IsInCooldown time diff: ${timeDiff * 1000}"))
-
+                player.sendMessage(Text.literal("$buffName effect is still on cooldown for ${twoMinutesInSeconds - timeDiff} seconds."))
             }
 
         }
@@ -48,13 +55,7 @@ class HasteEffect : ShoulderEffect {
         val effect = player.statusEffects.filterIsInstance<HasteShoulderStatusEffect>().firstOrNull()
         effect?.pokemonIds?.remove(pokemon.uuid)
     }
-    fun setPokemonCooldown(pokemon: Pokemon) {
-        val nbt = pokemon.saveToNBT(NbtCompound())
-        nbt.putLong("HASTE_EFFECT_LAST_USE", System.currentTimeMillis())
 
-        pokemon.loadFromNBT(nbt)
-    }
-
-    class HasteShoulderStatusEffect(pokemonIds: MutableList<UUID>, isInCooldown: Boolean, buffName: String) : ShoulderStatusEffect(pokemonIds, StatusEffects.HASTE, 10 * 20, isInCooldown, buffName ) {}
+    class HasteShoulderStatusEffect(pokemonIds: MutableList<UUID>, buffName: String, duration: Int) : ShoulderStatusEffect(pokemonIds, StatusEffects.HASTE, duration * 20, buffName ) {}
 
 }

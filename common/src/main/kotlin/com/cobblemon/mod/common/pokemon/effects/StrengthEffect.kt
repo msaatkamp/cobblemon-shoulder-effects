@@ -11,29 +11,41 @@ package com.cobblemon.mod.common.pokemon.effects
 import com.cobblemon.mod.common.api.pokemon.effect.ShoulderEffect
 import com.cobblemon.mod.common.api.pokemon.effect.ShoulderStatusEffect
 import com.cobblemon.mod.common.pokemon.Pokemon
-import com.cobblemon.mod.common.util.DataKeys
 import net.minecraft.entity.effect.StatusEffects
-import net.minecraft.nbt.NbtCompound
 import net.minecraft.server.network.ServerPlayerEntity
-import java.util.*
+import net.minecraft.text.Text
+import java.time.Instant
+import java.util.UUID
 
 class StrengthEffect : ShoulderEffect {
 
+    private val lastTimeUsed: MutableMap<UUID, Long> = mutableMapOf()
+    private val buffName: String = "Strength"
+    private val buffDurationSeconds: Int = 300
+
     override fun applyEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
         val effect = player.statusEffects.filterIsInstance<StrengthShoulderStatusEffect>().firstOrNull()
-        val lastTimeUse = pokemon.saveToNBT(NbtCompound()).getLong("STRENGTH_EFFECT_LAST_USE")
-        val twoMinutesInMillis = 2 * 60 * 1000 // 2 minutes in milliseconds
-        val timeDiff = System.currentTimeMillis() - lastTimeUse
-
         if (effect != null) {
             effect.pokemonIds.add(pokemon.uuid)
         }
         if (effect == null){
-            if(timeDiff >= twoMinutesInMillis) {
-                player.addStatusEffect(StrengthShoulderStatusEffect(mutableListOf(pokemon.uuid), false, "STRENGTH"))
-                pokemon.loadFromNBT(setPokemonCooldown(pokemon))
+            val lastTimeUse = lastTimeUsed[pokemon.uuid]
+            val currentTime = Instant.now().epochSecond
+            val twoMinutesInSeconds = 2 * 60 // 2 minutes in seconds
+            val timeDiff = if (lastTimeUse != null) currentTime - lastTimeUse else Long.MAX_VALUE
+
+            if (timeDiff >= twoMinutesInSeconds) {
+                player.addStatusEffect(
+                    StrengthShoulderStatusEffect(
+                        mutableListOf(pokemon.uuid),
+                        buffName,
+                        buffDurationSeconds
+                    )
+                )
+                lastTimeUsed[pokemon.uuid] = currentTime
+                player.sendMessage(Text.literal("$buffName effect applied from ${pokemon.displayName} for $buffDurationSeconds seconds."))
             } else {
-                player.addStatusEffect(StrengthShoulderStatusEffect(mutableListOf(pokemon.uuid), true, "STRENGTH"))
+                player.sendMessage(Text.literal("$buffName effect is still on cooldown for ${twoMinutesInSeconds - timeDiff} seconds."))
             }
 
         }
@@ -43,13 +55,7 @@ class StrengthEffect : ShoulderEffect {
         val effect = player.statusEffects.filterIsInstance<StrengthShoulderStatusEffect>().firstOrNull()
         effect?.pokemonIds?.remove(pokemon.uuid)
     }
-    fun setPokemonCooldown(pokemon: Pokemon): NbtCompound {
-        val nbt = pokemon.saveToNBT(NbtCompound())
-        nbt.putLong("STRENGTH_EFFECT_LAST_USE", System.currentTimeMillis())
 
-        return nbt
-    }
-
-    class StrengthShoulderStatusEffect(pokemonIds: MutableList<UUID>, isInCooldown: Boolean, buffName: String) : ShoulderStatusEffect(pokemonIds, StatusEffects.STRENGTH, 10 * 20, isInCooldown, buffName ) {}
+    class StrengthShoulderStatusEffect(pokemonIds: MutableList<UUID>, buffName: String, duration: Int) : ShoulderStatusEffect(pokemonIds, StatusEffects.STRENGTH, duration * 20, buffName ) {}
 
 }

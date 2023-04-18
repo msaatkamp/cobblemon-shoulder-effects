@@ -9,62 +9,45 @@
 package com.cobblemon.mod.common.pokemon.effects
 
 import com.cobblemon.mod.common.api.pokemon.effect.ShoulderEffect
+import com.cobblemon.mod.common.api.pokemon.effect.ShoulderStatusEffect
 import com.cobblemon.mod.common.pokemon.Pokemon
-import com.cobblemon.mod.common.util.DataKeys.POKEMON_UUID
-import net.minecraft.entity.LivingEntity
-import net.minecraft.entity.effect.StatusEffectInstance
 import net.minecraft.entity.effect.StatusEffects
-import net.minecraft.nbt.NbtCompound
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.text.Text
+import java.time.Instant
 import java.util.UUID
 
 class HealthBoostEffect : ShoulderEffect {
-    class HealthBoostShoulderStatusEffect(val pokemonIds: MutableList<UUID>) :
-        StatusEffectInstance(StatusEffects.HEALTH_BOOST, 2400, 0, true, false, false) {
 
-        var cooldown = 0
-
-        fun isShoulderedPokemon(shoulderEntity: NbtCompound): Boolean {
-            val pokemonNBT = shoulderEntity.getCompound("Pokemon")
-            return pokemonNBT.containsUuid(POKEMON_UUID) && pokemonNBT.getUuid(POKEMON_UUID) in pokemonIds
-        }
-
-        override fun writeNbt(nbt: NbtCompound): NbtCompound {
-            super.writeNbt(nbt)
-            nbt.putInt("id", -999)
-            return nbt
-        }
-
-        override fun update(entity: LivingEntity, overwriteCallback: Runnable?): Boolean {
-            entity as ServerPlayerEntity
-            duration = if (isShoulderedPokemon(entity.shoulderEntityLeft) || isShoulderedPokemon(entity.shoulderEntityRight)) {
-                2400
-            } else {
-                0
-            }
-
-            // Decrease cooldown timer if it's greater than 0
-            if (cooldown > 0) {
-                cooldown--
-            }
-
-            // Warn player when there's 10 seconds left
-            if (duration == 10 * 20) { // 10 seconds remaining
-                entity.sendMessage(Text.literal("Your health boost is about to wear off."))
-            }
-
-            return super.update(entity, overwriteCallback)
-        }
-    }
+    private val lastTimeUsed: MutableMap<UUID, Long> = mutableMapOf()
+    private val buffName: String = "Health Boost"
+    private val buffDurationSeconds: Int = 300
 
     override fun applyEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
         val effect = player.statusEffects.filterIsInstance<HealthBoostShoulderStatusEffect>().firstOrNull()
-        if (effect != null && effect.cooldown == 0) {
+        if (effect != null) {
             effect.pokemonIds.add(pokemon.uuid)
-            effect.cooldown = 20 * 60 // 1 minute cooldown
-        } else if (effect == null) {
-            player.addStatusEffect(HealthBoostShoulderStatusEffect(mutableListOf(pokemon.uuid)))
+        }
+        if (effect == null){
+            val lastTimeUse = lastTimeUsed[pokemon.uuid]
+            val currentTime = Instant.now().epochSecond
+            val twoMinutesInSeconds = 2 * 60 // 2 minutes in seconds
+            val timeDiff = if (lastTimeUse != null) currentTime - lastTimeUse else Long.MAX_VALUE
+
+            if (timeDiff >= twoMinutesInSeconds) {
+                player.addStatusEffect(
+                    HealthBoostShoulderStatusEffect(
+                        mutableListOf(pokemon.uuid),
+                        buffName,
+                        buffDurationSeconds
+                    )
+                )
+                lastTimeUsed[pokemon.uuid] = currentTime
+                player.sendMessage(Text.literal("$buffName effect applied from ${pokemon.displayName} for $buffDurationSeconds seconds."))
+            } else {
+                player.sendMessage(Text.literal("$buffName effect is still on cooldown for ${twoMinutesInSeconds - timeDiff} seconds."))
+            }
+
         }
     }
 
@@ -72,4 +55,7 @@ class HealthBoostEffect : ShoulderEffect {
         val effect = player.statusEffects.filterIsInstance<HealthBoostShoulderStatusEffect>().firstOrNull()
         effect?.pokemonIds?.remove(pokemon.uuid)
     }
+
+    class HealthBoostShoulderStatusEffect(pokemonIds: MutableList<UUID>, buffName: String, duration: Int) : ShoulderStatusEffect(pokemonIds, StatusEffects.HEALTH_BOOST, duration * 20, buffName ) {}
+
 }

@@ -9,68 +9,45 @@
 package com.cobblemon.mod.common.pokemon.effects
 
 import com.cobblemon.mod.common.api.pokemon.effect.ShoulderEffect
+import com.cobblemon.mod.common.api.pokemon.effect.ShoulderStatusEffect
 import com.cobblemon.mod.common.pokemon.Pokemon
-import com.cobblemon.mod.common.util.DataKeys.POKEMON_UUID
-import net.minecraft.entity.LivingEntity
-import net.minecraft.entity.effect.StatusEffectInstance
 import net.minecraft.entity.effect.StatusEffects
-import net.minecraft.nbt.NbtCompound
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.text.Text
+import java.time.Instant
 import java.util.UUID
 
 class SaturationEffect : ShoulderEffect {
-    class SaturationShoulderStatusEffect(internal val pokemonIds: MutableList<UUID>) : StatusEffectInstance(StatusEffects.SATURATION, 2, 0, true, false, false) {
 
-        companion object {
-            const val EFFECT_DURATION_SECONDS = 300 // 15 seconds
-            const val COOLDOWN_DURATION_SECONDS = 6000 // 5min
-        }
-
-        private var cooldown = 0
-        fun isShoulderedPokemon(shoulderEntity: NbtCompound): Boolean {
-            val pokemonNBT = shoulderEntity.getCompound("Pokemon")
-            return pokemonNBT.containsUuid(POKEMON_UUID) && pokemonNBT.getUuid(POKEMON_UUID) in pokemonIds
-        }
-
-        override fun writeNbt(nbt: NbtCompound): NbtCompound {
-            super.writeNbt(nbt)
-            nbt.putInt("id", -999)
-            return nbt
-        }
-
-        override fun update(entity: LivingEntity, overwriteCallback: Runnable?): Boolean {
-            entity as ServerPlayerEntity
-            
-
-            val world = entity.world
-
-            // Check if the player has lost three or more hunger points
-            val hungerLost = entity.hungerManager.prevFoodLevel - entity.hungerManager.foodLevel
-            val hasShoulderedPokemon = isShoulderedPokemon(entity.shoulderEntityLeft) || isShoulderedPokemon(entity.shoulderEntityRight)
-            if (!hasShoulderedPokemon) {
-                duration = maxOf(duration - EFFECT_DURATION_SECONDS, -1)
-            }
-            if (duration == 0 && cooldown == 0 && hungerLost >= 3) {
-                cooldown = COOLDOWN_DURATION_SECONDS
-                duration = EFFECT_DURATION_SECONDS
-            }
-            if (duration == 40) { // 2 seconds remaining
-                entity.sendMessage(Text.literal("Your starvation protection is about to wear off."))
-            }
-            if (cooldown == 20) { // 1 seconds to be ready
-                entity.sendMessage(Text.literal("Your starvation protection is ready."))
-            }
-            return super.update(entity, overwriteCallback)
-        }
-    }
+    private val lastTimeUsed: MutableMap<UUID, Long> = mutableMapOf()
+    private val buffName: String = "Saturation"
+    private val buffDurationSeconds: Int = 10
 
     override fun applyEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
         val effect = player.statusEffects.filterIsInstance<SaturationShoulderStatusEffect>().firstOrNull()
         if (effect != null) {
             effect.pokemonIds.add(pokemon.uuid)
-        } else {
-            player.addStatusEffect(SaturationShoulderStatusEffect(mutableListOf(pokemon.uuid)))
+        }
+        if (effect == null){
+            val lastTimeUse = lastTimeUsed[pokemon.uuid]
+            val currentTime = Instant.now().epochSecond
+            val twoMinutesInSeconds = 2 * 60 // 2 minutes in seconds
+            val timeDiff = if (lastTimeUse != null) currentTime - lastTimeUse else Long.MAX_VALUE
+
+            if (timeDiff >= twoMinutesInSeconds) {
+                player.addStatusEffect(
+                    SaturationShoulderStatusEffect(
+                        mutableListOf(pokemon.uuid),
+                        buffName,
+                        buffDurationSeconds
+                    )
+                )
+                lastTimeUsed[pokemon.uuid] = currentTime
+                player.sendMessage(Text.literal("$buffName effect applied from ${pokemon.displayName} for $buffDurationSeconds seconds."))
+            } else {
+                player.sendMessage(Text.literal("$buffName effect is still on cooldown for ${twoMinutesInSeconds - timeDiff} seconds."))
+            }
+
         }
     }
 
@@ -78,4 +55,7 @@ class SaturationEffect : ShoulderEffect {
         val effect = player.statusEffects.filterIsInstance<SaturationShoulderStatusEffect>().firstOrNull()
         effect?.pokemonIds?.remove(pokemon.uuid)
     }
+
+    class SaturationShoulderStatusEffect(pokemonIds: MutableList<UUID>, buffName: String, duration: Int) : ShoulderStatusEffect(pokemonIds, StatusEffects.SATURATION, duration * 20, buffName ) {}
+
 }

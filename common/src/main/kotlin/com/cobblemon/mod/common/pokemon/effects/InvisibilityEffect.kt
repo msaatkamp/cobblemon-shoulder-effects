@@ -9,62 +9,46 @@
 package com.cobblemon.mod.common.pokemon.effects
 
 import com.cobblemon.mod.common.api.pokemon.effect.ShoulderEffect
+import com.cobblemon.mod.common.api.pokemon.effect.ShoulderStatusEffect
 import com.cobblemon.mod.common.pokemon.Pokemon
-import com.cobblemon.mod.common.util.DataKeys.POKEMON_UUID
-import net.minecraft.entity.LivingEntity
-import net.minecraft.entity.effect.StatusEffectInstance
 import net.minecraft.entity.effect.StatusEffects
-import net.minecraft.nbt.NbtCompound
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.text.Text
+import java.time.Instant
 import java.util.UUID
 
 class InvisibilityEffect : ShoulderEffect {
-    class InvisibilityShoulderStatusEffect(internal val pokemonIds: MutableList<UUID>) : StatusEffectInstance(StatusEffects.INVISIBILITY, 2, 0, true, false, false) {
 
-        companion object {
-            const val EFFECT_DURATION_SECONDS = 6000 // 5min
-            const val COOLDOWN_DURATION_SECONDS = 2400 // 2min
-        }
-
-        private var cooldown = 0
-        fun isShoulderedPokemon(shoulderEntity: NbtCompound): Boolean {
-            val pokemonNBT = shoulderEntity.getCompound("Pokemon")
-            return pokemonNBT.containsUuid(POKEMON_UUID) && pokemonNBT.getUuid(POKEMON_UUID) in pokemonIds
-        }
-
-        override fun writeNbt(nbt: NbtCompound): NbtCompound {
-            super.writeNbt(nbt)
-            nbt.putInt("id", -999)
-            return nbt
-        }
-
-        override fun update(entity: LivingEntity, overwriteCallback: Runnable?): Boolean {
-            entity as ServerPlayerEntity
-            
-            val hasShoulderedPokemon = isShoulderedPokemon(entity.shoulderEntityLeft) || isShoulderedPokemon(entity.shoulderEntityRight)
-            if (hasShoulderedPokemon && cooldown <= 0) {
-                duration = EFFECT_DURATION_SECONDS
-            }
-            if(duration == 20 ) {
-                cooldown = COOLDOWN_DURATION_SECONDS
-            }
-            if (duration == 10 * 20) { // 10 seconds remaining
-                entity.sendMessage(Text.literal("Your invisibility effect is about to wear off."))
-            }
-            if (cooldown == 20) { // 1 seconds to be ready
-                entity.sendMessage(Text.literal("Your invisibility effect is ready."))
-            }
-            return super.update(entity, overwriteCallback)
-        }
-    }
+    private val lastTimeUsed: MutableMap<UUID, Long> = mutableMapOf()
+    private val buffName: String = "Invisibility"
+    private val buffDurationSeconds: Int = 180
 
     override fun applyEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
-        val effect = player.statusEffects.filterIsInstance<InvisibilityShoulderStatusEffect>().firstOrNull()
+        val effect = player.statusEffects.filterIsInstance<ConduitEffect.ConduitShoulderStatusEffect>().firstOrNull()
         if (effect != null) {
             effect.pokemonIds.add(pokemon.uuid)
-        } else {
-            player.addStatusEffect(InvisibilityShoulderStatusEffect(mutableListOf(pokemon.uuid)))
+        }
+        if (effect == null){
+            val lastTimeUse = lastTimeUsed[pokemon.uuid]
+            val currentTime = Instant.now().epochSecond
+            val twoMinutesInSeconds = 2 * 60 // 2 minutes in seconds
+            val timeDiff = if (lastTimeUse != null) currentTime - lastTimeUse else Long.MAX_VALUE
+
+            if (timeDiff >= twoMinutesInSeconds) {
+                player.addStatusEffect(
+                    ConduitEffect.ConduitShoulderStatusEffect(
+                        mutableListOf(pokemon.uuid),
+                        false,
+                        buffName,
+                        buffDurationSeconds
+                    )
+                )
+                lastTimeUsed[pokemon.uuid] = currentTime
+                player.sendMessage(Text.literal("$buffName effect applied from ${pokemon.displayName} for $buffDurationSeconds seconds."))
+            } else {
+                player.sendMessage(Text.literal("$buffName effect is still on cooldown for ${twoMinutesInSeconds - timeDiff} seconds."))
+            }
+
         }
     }
 
@@ -72,4 +56,7 @@ class InvisibilityEffect : ShoulderEffect {
         val effect = player.statusEffects.filterIsInstance<InvisibilityShoulderStatusEffect>().firstOrNull()
         effect?.pokemonIds?.remove(pokemon.uuid)
     }
+
+    class InvisibilityShoulderStatusEffect(pokemonIds: MutableList<UUID>, buffName: String, duration: Int) : ShoulderStatusEffect(pokemonIds, StatusEffects.INVISIBILITY, duration * 20, buffName ) {}
+
 }

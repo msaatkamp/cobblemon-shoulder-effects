@@ -8,7 +8,6 @@
 
 package com.cobblemon.mod.common.api.pokemon.effect
 
-import com.cobblemon.mod.common.pokemon.Pokemon
 import com.cobblemon.mod.common.util.DataKeys.POKEMON_UUID
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -16,14 +15,13 @@ import net.minecraft.entity.effect.StatusEffect
 import net.minecraft.nbt.NbtCompound
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.text.Text
-import java.util.*
+import java.util.UUID
 
 
 abstract class ShoulderStatusEffect(
     internal val pokemonIds: MutableList<UUID>,
     private val effect: StatusEffect,
     private val effectDurationSeconds: Int,
-    private val isInCooldown: Boolean,
     private val buffName: String
 ) : StatusEffectInstance(effect, effectDurationSeconds, 0, true, false, false) {
 
@@ -42,30 +40,25 @@ abstract class ShoulderStatusEffect(
         val hasShoulderedPokemon = isShoulderedPokemon(entity.shoulderEntityLeft) || isShoulderedPokemon(entity.shoulderEntityRight)
 
         if (hasShoulderedPokemon) {
-            if (msgCooldown <= 0 && !effectApplied && isInCooldown) {
-                entity.sendMessage(Text.literal("Your need to wait before using $buffName boost again. EffectApplied: $effectApplied msgCooldown: $msgCooldown"))
-                msgCooldown = 200
-                duration = -1
-            }
-            if (!isInCooldown && !effectApplied) {
+            if (!effectApplied) {
                 entity.sendMessage(Text.literal("Your pokemon is giving you a $buffName boost for ${effectDurationSeconds * 20} seconds."))
-                duration = if (duration > 0) duration + effectDurationSeconds * 27 else effectDurationSeconds
+                duration = if (duration > 0) duration + effectDurationSeconds else effectDurationSeconds
                 effectApplied = true
             }
         }
 
-        if(duration % 60 === 0 ) {
-            entity.sendMessage(Text.literal("Duration: $duration, isCooldown: $isInCooldown EffectApplied: $effectApplied msgCooldown: $msgCooldown"))
+        if(duration <= 60 && duration % 20 === 0 ) {
+            entity.sendMessage(Text.literal("$buffName is fading out in ${duration / 20} seconds.."))
         }
 
-        if (duration == 100) { // 5 seconds remaining
-            entity.sendMessage(Text.literal("Your pokemon is getting tired to give you $buffName. It will end in $duration seconds. Cooldown active: $isInCooldown"))
+        if (duration == 20) { // Last Sec Warning
+            entity.sendMessage(Text.literal("Your pokemon is tired to give you $buffName."))
         }
 
         if (!hasShoulderedPokemon) {
             if (duration >= 0) {
                 duration -= effectDurationSeconds
-                entity.sendMessage(Text.literal("Your pokemon $buffName was removed, and he needs to rest."))
+                entity.sendMessage(Text.literal("Your pokemon $buffName was removed."))
             }
         }
 
