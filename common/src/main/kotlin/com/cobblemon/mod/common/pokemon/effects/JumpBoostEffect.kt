@@ -30,10 +30,12 @@ class JumpBoostEffect : ShoulderEffect {
         if (effect == null){
             val lastTimeUse = lastTimeUsed[pokemon.uuid]
             val currentTime = Instant.now().epochSecond
-            val twoMinutesInSeconds = 2 * 60 // 2 minutes in seconds
+            val cdAfterEffect = 2 * 60 + buffDurationSeconds // 2 minutes in seconds
             val timeDiff = if (lastTimeUse != null) currentTime - lastTimeUse else Long.MAX_VALUE
 
-            if (timeDiff >= twoMinutesInSeconds) {
+            lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond
+            if (timeDiff >= cdAfterEffect) {
+            
                 player.addStatusEffect(
                     JumpBoostEffect.JumpBoostShoulderStatusEffect(
                         mutableListOf(pokemon.uuid),
@@ -41,10 +43,10 @@ class JumpBoostEffect : ShoulderEffect {
                         buffDurationSeconds
                     )
                 )
-                lastTimeUsed[pokemon.uuid] = currentTime
+                
                 player.sendMessage(Text.literal("$buffName effect applied from ${pokemon.species.name} for $buffDurationSeconds seconds."))
             } else {
-                player.sendMessage(Text.literal("$buffName effect is still on cooldown for ${twoMinutesInSeconds - timeDiff} seconds."))
+                player.sendMessage(Text.literal("$buffName effect is still on cooldown for ${cdAfterEffect - timeDiff} seconds."))
             }
 
         }

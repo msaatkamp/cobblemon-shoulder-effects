@@ -24,9 +24,6 @@ abstract class ShoulderStatusEffect(
     private val effectDurationSeconds: Int,
     private val buffName: String
 ) : StatusEffectInstance(effect, effectDurationSeconds, 0, true, false, false) {
-
-    private var effectApplied = false
-
     override fun writeNbt(nbt: NbtCompound): NbtCompound {
         super.writeNbt(nbt)
         nbt.putInt("id", -999)
@@ -38,13 +35,6 @@ abstract class ShoulderStatusEffect(
 
         val hasShoulderedPokemon = isShoulderedPokemon(entity.shoulderEntityLeft) || isShoulderedPokemon(entity.shoulderEntityRight)
 
-        if (hasShoulderedPokemon) {
-            if (!effectApplied) {
-                duration = if (duration > 0) duration + effectDurationSeconds else effectDurationSeconds
-                effectApplied = true
-            }
-        }
-
         if(duration <= 60 && duration % 20 === 0 ) {
             entity.sendMessage(Text.literal("$buffName is fading out in ${duration / 20} seconds.."))
         }
@@ -52,7 +42,6 @@ abstract class ShoulderStatusEffect(
         if (duration == 20) { // Last Sec Warning
             entity.sendMessage(Text.literal("Your pokemon is tired to give you $buffName."))
         }
-
         if (!hasShoulderedPokemon) {
             if (duration >= 0) {
                 duration -= effectDurationSeconds
