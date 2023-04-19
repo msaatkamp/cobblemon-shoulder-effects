@@ -33,10 +33,8 @@ class DolphinGraceEffect : ShoulderEffect {
             effect.pokemonIds.add(pokemon.uuid)
         }
         if (effect == null){
-            if (lastTimeUse != null) {
-                if(lastTimeUse > currentTime) {
-                    lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond
-                }
+            if(lastTimeUse?.let {it > currentTime} == true) {
+                lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond
             }
             if (timeDiff >= cooldown) {
                 lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond + buffDurationSeconds
@@ -62,10 +60,8 @@ class DolphinGraceEffect : ShoulderEffect {
         val lastTimeUse = lastTimeUsed[pokemon.uuid]
         val currentTime = Instant.now().epochSecond
 
-        if (lastTimeUse != null) {
-            if(lastTimeUse > currentTime) {
-                lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond
-            }
+        if(lastTimeUse?.let {it > currentTime} == true) {
+            lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond
         }
         if (effect != null) {
             effect.pokemonIds.remove(pokemon.uuid)

@@ -34,7 +34,7 @@ class FireResistanceEffect : ShoulderEffect {
             effect.pokemonIds.add(pokemon.uuid)
         }
         if (effect == null){
-            if(lastTimeUse!! > currentTime) {
+            if(lastTimeUse?.let {it > currentTime} == true) {
                 lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond
             }
             if (timeDiff >= cooldown) {
@@ -62,7 +62,7 @@ class FireResistanceEffect : ShoulderEffect {
         val currentTime = Instant.now().epochSecond
         
         if (effect != null) {
-            if(lastTimeUse!! > currentTime) {
+            if(lastTimeUse?.let {it > currentTime} == true) {
                 lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond
             }
             effect.pokemonIds.remove(pokemon.uuid)
