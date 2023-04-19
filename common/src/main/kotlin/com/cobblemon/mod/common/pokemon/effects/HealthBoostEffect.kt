@@ -44,7 +44,7 @@ class HealthBoostEffect : ShoulderEffect {
                     )
                 )
                 
-                player.sendMessage(Text.literal("$buffName effect applied from ${pokemon.species.name} for $buffDurationSeconds seconds."))
+                player.sendMessage(Text.literal("$buffName effect applied from ${pokemon.species.name}."))   
             } else {
                 player.sendMessage(Text.literal("$buffName effect is still on cooldown for ${cdAfterEffect - timeDiff} seconds."))
             }
@@ -55,8 +55,9 @@ class HealthBoostEffect : ShoulderEffect {
     override fun removeEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
         val effect = player.statusEffects.filterIsInstance<HealthBoostShoulderStatusEffect>().firstOrNull()
         effect?.pokemonIds?.remove(pokemon.uuid)
+        lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond // Update if remove pokémon from it's shoulder
     }
-
+ 
     class HealthBoostShoulderStatusEffect(pokemonIds: MutableList<UUID>, buffName: String, duration: Int) : ShoulderStatusEffect(pokemonIds, StatusEffects.HEALTH_BOOST, duration * 20, buffName ) {}
 
 }

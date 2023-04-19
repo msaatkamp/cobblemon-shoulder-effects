@@ -43,7 +43,7 @@ class SlowFallEffect : ShoulderEffect {
                     )
                 )
 
-                player.sendMessage(Text.literal("$buffName effect applied from ${pokemon.species.name} for $buffDurationSeconds seconds."))
+                player.sendMessage(Text.literal("$buffName effect applied from ${pokemon.species.name}."))   
             } else {
                 player.sendMessage(Text.literal("$buffName effect is still on cooldown for ${cdAfterEffect - timeDiff} seconds."))
             }
@@ -54,6 +54,7 @@ class SlowFallEffect : ShoulderEffect {
     override fun removeEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
         val effect = player.statusEffects.filterIsInstance<SlowFallShoulderStatusEffect>().firstOrNull()
         effect?.pokemonIds?.remove(pokemon.uuid)
+        lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond // Update if remove pokémon from it's shoulder
     }
 
     class SlowFallShoulderStatusEffect(pokemonIds: MutableList<UUID>, buffName: String, duration: Int) : ShoulderStatusEffect(pokemonIds, StatusEffects.SLOW_FALLING, duration * 20, buffName ) {}
