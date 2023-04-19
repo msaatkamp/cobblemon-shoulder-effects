@@ -19,34 +19,38 @@ import java.util.UUID
 class LightSourceEffect : ShoulderEffect {
 
     private val lastTimeUsed: MutableMap<UUID, Long> = mutableMapOf()
+    private val cooldown: Int = 120 // 2 minutes in seconds
     private val buffName: String = "Glowing"
     private val buffDurationSeconds: Int = 300
 
     override fun applyEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
         val effect = player.statusEffects.filterIsInstance<LightSourceShoulderStatusEffect>().firstOrNull()
+        val lastTimeUse = lastTimeUsed[pokemon.uuid]
+        val currentTime = Instant.now().epochSecond
+
+        val timeDiff = if (lastTimeUse != null) currentTime - lastTimeUse else Long.MAX_VALUE
+
         if (effect != null) {
             effect.pokemonIds.add(pokemon.uuid)
         }
         if (effect == null){
-            val lastTimeUse = lastTimeUsed[pokemon.uuid]
-            val currentTime = Instant.now().epochSecond
-            val cdAfterEffect = 2 * 60 + buffDurationSeconds // 2 minutes in seconds
-            val timeDiff = if (lastTimeUse != null) currentTime - lastTimeUse else Long.MAX_VALUE
-
-            if (timeDiff >= cdAfterEffect) {
+            if(timeDiff > cooldown + buffDurationSeconds) {
                 lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond
-            
+            }
+            if (timeDiff >= cooldown) {
+                lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond + buffDurationSeconds
+
                 player.addStatusEffect(
-                    LightSourceShoulderStatusEffect(
+                    WaterBreathingEffect.WaterBreathingShoulderStatusEffect(
                         mutableListOf(pokemon.uuid),
                         buffName,
                         buffDurationSeconds
                     )
                 )
-                
-                player.sendMessage(Text.literal("$buffName effect applied from ${pokemon.species.name}."))   
+
+                player.sendMessage(Text.literal("$buffName effect applied from ${pokemon.species.name}."))
             } else {
-                player.sendMessage(Text.literal("$buffName effect is still on cooldown for ${cdAfterEffect - timeDiff} seconds."))
+                player.sendMessage(Text.literal("$buffName effect is still on cooldown for ${cooldown - timeDiff} seconds."))
             }
 
         }
@@ -54,12 +58,7 @@ class LightSourceEffect : ShoulderEffect {
 
     override fun removeEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
         val effect = player.statusEffects.filterIsInstance<LightSourceShoulderStatusEffect>().firstOrNull()
-        val lastTimeUse = lastTimeUsed[pokemon.uuid]
-        val currentTime = Instant.now().epochSecond
-        val timeDiff = if (lastTimeUse != null) currentTime - lastTimeUse else Long.MAX_VALUE
-        if (effect != null && timeDiff >= 120) {
-            lastTimeUsed[pokemon.uuid] = currentTime
-        }
+
         if (effect != null) {
             effect.pokemonIds.remove(pokemon.uuid)
         }
