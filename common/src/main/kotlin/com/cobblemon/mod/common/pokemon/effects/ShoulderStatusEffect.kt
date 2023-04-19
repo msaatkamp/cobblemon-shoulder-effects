@@ -35,8 +35,8 @@ abstract class ShoulderStatusEffect(
 
         val hasShoulderedPokemon = isShoulderedPokemon(entity.shoulderEntityLeft) || isShoulderedPokemon(entity.shoulderEntityRight)
 
-        if(duration <= 60 && duration % 20 === 0 ) {
-            entity.sendMessage(Text.literal("$buffName is fading out in ${duration / 20} seconds.."))
+        if(duration == 200 && duration % 20 === 0 ) {
+            entity.sendMessage(Text.literal("$buffName will be worn out in ${duration / 20} seconds.."))
         }
 
         if (duration == 20) { // Last Sec Warning
