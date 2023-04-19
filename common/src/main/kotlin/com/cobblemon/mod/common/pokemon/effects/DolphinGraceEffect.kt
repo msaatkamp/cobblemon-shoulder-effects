@@ -27,21 +27,22 @@ class DolphinGraceEffect : ShoulderEffect {
         val effect = player.statusEffects.filterIsInstance<DolphinGraceShoulderStatusEffect>().firstOrNull()
         val lastTimeUse = lastTimeUsed[pokemon.uuid]
         val currentTime = Instant.now().epochSecond
-
         val timeDiff = if (lastTimeUse != null) currentTime - lastTimeUse else Long.MAX_VALUE
 
         if (effect != null) {
             effect.pokemonIds.add(pokemon.uuid)
         }
         if (effect == null){
-            if(timeDiff > cooldown + buffDurationSeconds) {
-                lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond
+            if (lastTimeUse != null) {
+                if(lastTimeUse > currentTime) {
+                    lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond
+                }
             }
             if (timeDiff >= cooldown) {
                 lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond + buffDurationSeconds
 
                 player.addStatusEffect(
-                    WaterBreathingEffect.WaterBreathingShoulderStatusEffect(
+                    DolphinGraceShoulderStatusEffect(
                         mutableListOf(pokemon.uuid),
                         buffName,
                         buffDurationSeconds
@@ -58,7 +59,14 @@ class DolphinGraceEffect : ShoulderEffect {
 
     override fun removeEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
         val effect = player.statusEffects.filterIsInstance<DolphinGraceShoulderStatusEffect>().firstOrNull()
+        val lastTimeUse = lastTimeUsed[pokemon.uuid]
+        val currentTime = Instant.now().epochSecond
 
+        if (lastTimeUse != null) {
+            if(lastTimeUse > currentTime) {
+                lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond
+            }
+        }
         if (effect != null) {
             effect.pokemonIds.remove(pokemon.uuid)
         }

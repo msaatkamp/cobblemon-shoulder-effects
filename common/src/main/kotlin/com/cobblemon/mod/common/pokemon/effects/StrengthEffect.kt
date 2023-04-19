@@ -34,14 +34,14 @@ class StrengthEffect : ShoulderEffect {
             effect.pokemonIds.add(pokemon.uuid)
         }
         if (effect == null){
-            if(timeDiff > cooldown + buffDurationSeconds) {
+            if(lastTimeUse!! > currentTime) {
                 lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond
             }
             if (timeDiff >= cooldown) {
                 lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond + buffDurationSeconds
 
                 player.addStatusEffect(
-                    WaterBreathingEffect.WaterBreathingShoulderStatusEffect(
+                    StrengthShoulderStatusEffect(
                         mutableListOf(pokemon.uuid),
                         buffName,
                         buffDurationSeconds
@@ -58,8 +58,13 @@ class StrengthEffect : ShoulderEffect {
 
     override fun removeEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
         val effect = player.statusEffects.filterIsInstance<StrengthShoulderStatusEffect>().firstOrNull()
-
+        val lastTimeUse = lastTimeUsed[pokemon.uuid]
+        val currentTime = Instant.now().epochSecond
+        
         if (effect != null) {
+            if(lastTimeUse!! > currentTime) {
+                lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond
+            }
             effect.pokemonIds.remove(pokemon.uuid)
         }
     }

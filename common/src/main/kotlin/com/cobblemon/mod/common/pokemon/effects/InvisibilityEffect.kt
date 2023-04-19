@@ -24,7 +24,7 @@ class InvisibilityEffect : ShoulderEffect {
     private val buffDurationSeconds: Int = 180
 
     override fun applyEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
-        val effect = player.statusEffects.filterIsInstance<ConduitEffect.ConduitShoulderStatusEffect>().firstOrNull()
+        val effect = player.statusEffects.filterIsInstance<InvisibilityShoulderStatusEffect>().firstOrNull()
         val lastTimeUse = lastTimeUsed[pokemon.uuid]
         val currentTime = Instant.now().epochSecond
 
@@ -34,14 +34,14 @@ class InvisibilityEffect : ShoulderEffect {
             effect.pokemonIds.add(pokemon.uuid)
         }
         if (effect == null){
-            if(timeDiff > cooldown + buffDurationSeconds) {
+            if(lastTimeUse!! > currentTime) {
                 lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond
             }
             if (timeDiff >= cooldown) {
                 lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond + buffDurationSeconds
 
                 player.addStatusEffect(
-                    WaterBreathingEffect.WaterBreathingShoulderStatusEffect(
+                    InvisibilityShoulderStatusEffect(
                         mutableListOf(pokemon.uuid),
                         buffName,
                         buffDurationSeconds
@@ -58,8 +58,13 @@ class InvisibilityEffect : ShoulderEffect {
 
     override fun removeEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
         val effect = player.statusEffects.filterIsInstance<InvisibilityShoulderStatusEffect>().firstOrNull()
-
+        val lastTimeUse = lastTimeUsed[pokemon.uuid]
+        val currentTime = Instant.now().epochSecond
+        
         if (effect != null) {
+            if(lastTimeUse!! > currentTime) {
+                lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond
+            }
             effect.pokemonIds.remove(pokemon.uuid)
         }
     }

@@ -27,14 +27,13 @@ class WaterBreathingEffect : ShoulderEffect {
         val effect = player.statusEffects.filterIsInstance<WaterBreathingShoulderStatusEffect>().firstOrNull()
         val lastTimeUse = lastTimeUsed[pokemon.uuid]
         val currentTime = Instant.now().epochSecond
-        
         val timeDiff = if (lastTimeUse != null) currentTime - lastTimeUse else Long.MAX_VALUE
 
         if (effect != null) {
             effect.pokemonIds.add(pokemon.uuid)
         }
         if (effect == null){
-            if(timeDiff > cooldown + buffDurationSeconds) {
+            if(lastTimeUse!! > currentTime) {
                 lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond
             }
             if (timeDiff >= cooldown) {
@@ -58,8 +57,13 @@ class WaterBreathingEffect : ShoulderEffect {
 
     override fun removeEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
         val effect = player.statusEffects.filterIsInstance<WaterBreathingShoulderStatusEffect>().firstOrNull()
+        val lastTimeUse = lastTimeUsed[pokemon.uuid]
+        val currentTime = Instant.now().epochSecond
 
         if (effect != null) {
+            if(lastTimeUse!! > currentTime) {
+                lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond
+            }
             effect.pokemonIds.remove(pokemon.uuid)
         }
     }
