@@ -46,8 +46,15 @@ class ConduitEffect : ShoulderEffect {
 
     override fun removeEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
         val effect = player.statusEffects.filterIsInstance<ConduitShoulderStatusEffect>().firstOrNull()
-        effect?.pokemonIds?.remove(pokemon.uuid)
-        lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond // Update if remove pokémon from it's shoulder
+        val lastTimeUse = lastTimeUsed[pokemon.uuid]
+        val currentTime = Instant.now().epochSecond
+        val timeDiff = if (lastTimeUse != null) currentTime - lastTimeUse else Long.MAX_VALUE
+        if (effect != null && timeDiff >= 120) {
+            lastTimeUsed[pokemon.uuid] = currentTime
+        }
+        if (effect != null) {
+            effect.pokemonIds.remove(pokemon.uuid)
+        }
     }
  
     class ConduitShoulderStatusEffect(pokemonIds: MutableList<UUID>, buffName: String, duration: Int) : ShoulderStatusEffect(pokemonIds, StatusEffects.CONDUIT_POWER, duration * 20, buffName ) {}

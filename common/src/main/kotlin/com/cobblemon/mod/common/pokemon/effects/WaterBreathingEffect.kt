@@ -33,9 +33,9 @@ class WaterBreathingEffect : ShoulderEffect {
             val cdAfterEffect = 2 * 60 + buffDurationSeconds // 2 minutes in seconds
             val timeDiff = if (lastTimeUse != null) currentTime - lastTimeUse else Long.MAX_VALUE
 
-            lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond
             if (timeDiff >= cdAfterEffect) {
-            
+                lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond
+
                 player.addStatusEffect(
                     WaterBreathingShoulderStatusEffect(
                         mutableListOf(pokemon.uuid),
@@ -43,8 +43,8 @@ class WaterBreathingEffect : ShoulderEffect {
                         buffDurationSeconds
                     )
                 )
-                
-                player.sendMessage(Text.literal("$buffName effect applied from ${pokemon.species.name}."))   
+
+                player.sendMessage(Text.literal("$buffName effect applied from ${pokemon.species.name}."))
             } else {
                 player.sendMessage(Text.literal("$buffName effect is still on cooldown for ${cdAfterEffect - timeDiff} seconds."))
             }
@@ -54,10 +54,17 @@ class WaterBreathingEffect : ShoulderEffect {
 
     override fun removeEffect(pokemon: Pokemon, player: ServerPlayerEntity, isLeft: Boolean) {
         val effect = player.statusEffects.filterIsInstance<WaterBreathingShoulderStatusEffect>().firstOrNull()
-        effect?.pokemonIds?.remove(pokemon.uuid)
-        lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond // Update if remove pokémon from it's shoulder
+        val lastTimeUse = lastTimeUsed[pokemon.uuid]
+        val currentTime = Instant.now().epochSecond
+        val timeDiff = if (lastTimeUse != null) currentTime - lastTimeUse else Long.MAX_VALUE
+        if (effect != null && timeDiff >= 120) {
+            lastTimeUsed[pokemon.uuid] = currentTime
+        }
+        if (effect != null) {
+            effect.pokemonIds.remove(pokemon.uuid)
+        }
     }
- 
+
     class WaterBreathingShoulderStatusEffect(pokemonIds: MutableList<UUID>, buffName: String, duration: Int) : ShoulderStatusEffect(pokemonIds, StatusEffects.WATER_BREATHING, duration * 20, buffName ) {}
 
 }
