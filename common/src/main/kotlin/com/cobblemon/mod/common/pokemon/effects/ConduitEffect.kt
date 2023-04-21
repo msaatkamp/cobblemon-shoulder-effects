@@ -41,7 +41,7 @@ class ConduitEffect : ShoulderEffect {
                 lastTimeUsed[pokemon.uuid] = Instant.now().epochSecond + buffDurationSeconds
 
                 player.addStatusEffect(
-                    WaterBreathingEffect.WaterBreathingShoulderStatusEffect(
+                    ConduitShoulderStatusEffect(
                         mutableListOf(pokemon.uuid),
                         buffName,
                         buffDurationSeconds
